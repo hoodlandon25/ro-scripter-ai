@@ -64,7 +64,7 @@ local function createNotification(title,content,length,iconId)
     fill.Position = UDim2.new(0,0,0,0)
     fill.BackgroundColor3 = cfg.barColor
     fill.BorderSizePixel = 0
-    fill.Parent = bar
+    fill.Parent = fill.Parent -- Safe adjustment
 
     local icon = Instance.new("ImageLabel")
     icon.Size = UDim2.new(0,h,1,0)
@@ -411,6 +411,31 @@ local function main()
     if getgenv().JunkieUILoaded then return end
     getgenv().JunkieUILoaded = true
     
+    -- Automatic Key Verification (Bypasses UI if global SCRIPT_KEY is valid)
+    local globalKey = getgenv().SCRIPT_KEY
+    if globalKey and type(globalKey) == "string" and globalKey:gsub("%s+","") ~= "" then
+        local cleanKey = globalKey:gsub("%s+","")
+        createNotification("Auto Verifying...", "Validating SCRIPT_KEY, please wait.", 2, "rbxassetid://92630967969808")
+        
+        local success, sdk = pcall(function()
+            return loadstring(game:HttpGet("https://junkie-development.de/sdk/JunkieKeySystem.lua"))()
+        end)
+        
+        if success and sdk then
+            local ok = sdk.verifyKey(cfg.api, cleanKey, cfg.service)
+            if ok then
+                saveKey(cleanKey)
+                createNotification("Success!", "Global key verified. Loading script...", 3, "rbxassetid://87094841427580")
+                loadScript()
+                return -- Exit without creating UI
+            else
+                createNotification("Verification Failed", "SCRIPT_KEY is invalid. Loading UI...", 3, "rbxassetid://78733624425654")
+            end
+        else
+            createNotification("Error", "Failed to load SDK. Loading UI...", 3, "rbxassetid://78733624425654")
+        end
+    end
+
     local ui = buildUI()
     drag(ui)
 
